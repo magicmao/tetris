@@ -5,6 +5,7 @@ import './index.css';
 var gameConfig = { width: 16, height: 20, totalBlocks: (16 * 20), waitMilliSeconds: 1000, currentScore: 0 };
 var gameBlocks = Array(gameConfig.totalBlocks).fill(0).map(x => ({ value: null, color: 0, type: 0 }));
 var gameGlobal = {
+    nextBlock: null,
     currentBlock: null,
     currentBlocks: null,
     gamePanel: React.createRef(),
@@ -20,12 +21,21 @@ var gameGlobal = {
     pauseTimer: function () { this.timer.current.cancelTimer(); },
     resumeTimer: function () { this.timer.current.startTimer(); },
     newBlock: function () {
+        if (this.nextBlock == null ) {
+            this.nextBlock = {
+                x: gameConfig.width / 2,
+                y: 0,
+                block: new Block({ type: this.random(0, 6), rotation: this.random(0, 3), color: this.random(1, 6) })
+            };
+        }
         let newBlock = {
             x: gameConfig.width / 2,
             y: 0,
             block: new Block({ type: this.random(0, 6), rotation: this.random(0, 3), color: this.random(1, 6) })
         };
-        this.setGamePanelState(newBlock);
+        let currentBlock = this.nextBlock;
+        this.nextBlock = newBlock;
+        this.setGamePanelState(currentBlock);
         return newBlock;
     },
     random(start, end) {
@@ -227,7 +237,42 @@ const GameContent = (props) => {
     );
 }
 
-const GameInfo = () => <div>Total Score: {gameConfig.currentScore}</div>;
+const GameNextBlock = (props) => {
+    let blocks = Array(16).fill(0).map(x => ({ value: null, color: 0, type: 0 }));
+    if (gameGlobal.nextBlock.block) {
+        let [nextBlock, color] = gameGlobal.nextBlock.block.getInstance();
+        for (var i = 0; i < 4; i++) {
+            let index = (nextBlock[i][1]) * 4 + nextBlock[i][0];
+            blocks[index].color = color;
+            blocks[index].value = "●";
+        }
+    }
+    blocks = blocks.map((currentValue, index, arr) => {
+        return (
+            <GameSquare
+                key={index}
+                value={currentValue}
+            />
+        )
+    });
+
+    let lines = new Array(16).fill(null);
+    for (let i = 0; i < lines.length; i++) {
+        let index = i * 4;
+        lines[i] = (
+            <div key={i} className="board-row">
+                {blocks.slice(index, index + 4)}
+            </div>
+        )
+    }
+
+    return (
+        <div>
+            {lines}
+        </div>
+    );
+}
+const GameInfo = () => <div>Total Score: {gameConfig.currentScore}<br/><GameNextBlock /></div>;
 
 class GameControl extends React.Component {
     constructor(props) {
